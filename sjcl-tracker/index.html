@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SJCL — Sanjen Jalvidyut Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #0A1E22;
+    --panel: #11292E;
+    --panel-border: #1D3B40;
+    --accent: #3FBFAE;
+    --accent-soft: rgba(63,191,174,0.12);
+    --gain: #63C77B;
+    --loss: #E2725B;
+    --text: #EAF3F1;
+    --text-muted: #7E9FA0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:32px 20px 64px;}
+
+  /* Hero */
+  .hero{
+    position:relative;
+    overflow:hidden;
+    border:1px solid var(--panel-border);
+    border-radius:16px;
+    background:linear-gradient(180deg, #0D2429 0%, #0A1E22 100%);
+    padding:36px 28px 28px;
+    margin-bottom:22px;
+  }
+  .flow-lines{position:absolute;inset:0;opacity:0.35;pointer-events:none;}
+  .flow-lines path{
+    fill:none;
+    stroke:var(--accent);
+    stroke-width:1;
+    animation: drift 14s ease-in-out infinite;
+  }
+  .flow-lines path:nth-child(2){animation-duration:18s;stroke-opacity:0.6;animation-delay:-4s;}
+  .flow-lines path:nth-child(3){animation-duration:22s;stroke-opacity:0.35;animation-delay:-9s;}
+  @keyframes drift{
+    0%,100%{ transform: translateX(0); }
+    50%{ transform: translateX(-24px); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .flow-lines path{ animation:none; }
+  }
+
+  .eyebrow{
+    position:relative;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 6px;
+  }
+  h1{
+    position:relative;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:22px;
+    margin:0 0 22px;
+    color:var(--text);
+  }
+  h1 span{color:var(--text-muted); font-weight:500;}
+
+  .price-row{position:relative; display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;}
+  .price{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:700;
+    font-size:52px;
+    line-height:1;
+  }
+  .change{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:15px;
+    padding:5px 10px;
+    border-radius:8px;
+  }
+  .change.up{color:var(--gain); background:rgba(99,199,123,0.12);}
+  .change.down{color:var(--loss); background:rgba(226,114,91,0.12);}
+  .as-of{position:relative; margin-top:8px; font-size:12px; color:var(--text-muted); font-family:'IBM Plex Mono', monospace;}
+
+  /* Range toggle */
+  .ranges{display:flex; gap:6px; margin:22px 0 14px; flex-wrap:wrap;}
+  .ranges button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    background:transparent;
+    border:1px solid var(--panel-border);
+    color:var(--text-muted);
+    padding:6px 12px;
+    border-radius:20px;
+    cursor:pointer;
+    transition: all 0.15s ease;
+  }
+  .ranges button:hover{border-color:var(--accent); color:var(--text);}
+  .ranges button.active{background:var(--accent-soft); border-color:var(--accent); color:var(--accent);}
+
+  /* Chart panel */
+  .chart-panel{
+    border:1px solid var(--panel-border);
+    border-radius:16px;
+    background:var(--panel);
+    padding:20px 16px 8px;
+    margin-bottom:22px;
+  }
+  #chart-container{height:320px;}
+
+  /* Stats grid */
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:1px;
+    background:var(--panel-border);
+    border:1px solid var(--panel-border);
+    border-radius:16px;
+    overflow:hidden;
+  }
+  .stat{background:var(--panel); padding:16px 18px;}
+  .stat-label{font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:6px;}
+  .stat-value{font-family:'IBM Plex Mono', monospace; font-size:17px; font-weight:500;}
+
+  .empty-state{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--text-muted);
+    font-size:14px;
+    line-height:1.6;
+  }
+  .empty-state code{
+    background:var(--panel-border);
+    padding:2px 6px;
+    border-radius:4px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+  }
+
+  footer{
+    margin-top:26px;
+    text-align:center;
+    font-size:11px;
+    color:var(--text-muted);
+    font-family:'IBM Plex Mono', monospace;
+  }
+  footer a{color:var(--accent); text-decoration:none;}
+
+  @media (max-width:560px){
+    .price{font-size:38px;}
+    .stats{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <svg class="flow-lines" viewBox="0 0 900 120" preserveAspectRatio="none">
+      <path d="M-50,30 C150,10 250,60 450,40 C650,20 750,70 950,50" />
+      <path d="M-50,60 C150,80 250,40 450,70 C650,100 750,50 950,80" />
+      <path d="M-50,95 C150,75 250,105 450,90 C650,75 750,110 950,95" />
+    </svg>
+    <p class="eyebrow">NEPSE · Hydropower Sector</p>
+    <h1>SJCL <span>— Sanjen Jalvidyut Company Limited</span></h1>
+    <div class="price-row">
+      <div class="price" id="current-price">—</div>
+      <div class="change" id="current-change">—</div>
+    </div>
+    <div class="as-of" id="as-of">Loading data…</div>
+  </div>
+
+  <div class="ranges" id="ranges">
+    <button data-range="30">1M</button>
+    <button data-range="90">3M</button>
+    <button data-range="180">6M</button>
+    <button data-range="365" class="active">1Y</button>
+    <button data-range="all">All</button>
+  </div>
+
+  <div class="chart-panel">
+    <div id="chart-container"><canvas id="price-chart"></canvas></div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <footer>
+    Data refreshed automatically via GitHub Actions from NEPSE public price history · Not investment advice
+  </footer>
+</div>
+
+<script>
+const DATA_URL = 'data/sjcl.json';
+let allData = [];
+let chart = null;
+let currentRangeDays = 365;
+
+async function loadData(){
+  try{
+    const res = await fetch(DATA_URL, { cache: 'no-store' });
+    allData = await res.json();
+  }catch(e){
+    allData = [];
+  }
+
+  if(!allData || allData.length === 0){
+    document.querySelector('.wrap').innerHTML = `
+      <div class="hero">
+        <p class="eyebrow">NEPSE · Hydropower Sector</p>
+        <h1>SJCL <span>— Sanjen Jalvidyut Company Limited</span></h1>
+      </div>
+      <div class="empty-state">
+        No data yet. Trigger the <code>Update SJCL price data</code> GitHub Action manually once<br/>
+        (Actions tab → workflow_dispatch) to populate <code>data/sjcl.json</code> for the first time.
+      </div>`;
+    return;
+  }
+
+  renderAll();
+  document.querySelectorAll('.ranges button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.ranges button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentRangeDays = btn.dataset.range === 'all' ? 'all' : parseInt(btn.dataset.range);
+      renderChart();
+    });
+  });
+}
+
+function filteredData(){
+  if(currentRangeDays === 'all') return allData;
+  return allData.slice(-currentRangeDays);
+}
+
+function renderAll(){
+  const latest = allData[allData.length - 1];
+  const prev = allData.length > 1 ? allData[allData.length - 2] : latest;
+  const delta = latest.close - prev.close;
+  const pct = (delta / prev.close) * 100;
+  const up = delta >= 0;
+
+  document.getElementById('current-price').textContent = 'Rs ' + latest.close.toFixed(2);
+  const changeEl = document.getElementById('current-change');
+  changeEl.textContent = (up ? '▲ ' : '▼ ') + Math.abs(delta).toFixed(2) + '  (' + Math.abs(pct).toFixed(2) + '%)';
+  changeEl.className = 'change ' + (up ? 'up' : 'down');
+  document.getElementById('as-of').textContent = 'As of ' + latest.date + ' · ' + allData.length + ' trading days tracked';
+
+  const highs = allData.map(d=>d.high ?? d.close);
+  const lows = allData.map(d=>d.low ?? d.close);
+  const vol = latest.volume;
+
+  const stats = [
+    ['Open', latest.open != null ? 'Rs ' + latest.open.toFixed(2) : '—'],
+    ['Day High', latest.high != null ? 'Rs ' + latest.high.toFixed(2) : '—'],
+    ['Day Low', latest.low != null ? 'Rs ' + latest.low.toFixed(2) : '—'],
+    ['Prev Close', 'Rs ' + prev.close.toFixed(2)],
+    ['Volume', vol != null ? Math.round(vol).toLocaleString() : '—'],
+    ['52W High', 'Rs ' + Math.max(...highs.slice(-365)).toFixed(2)],
+    ['52W Low', 'Rs ' + Math.min(...lows.slice(-365)).toFixed(2)],
+    ['All-time High', 'Rs ' + Math.max(...highs).toFixed(2)],
+    ['All-time Low', 'Rs ' + Math.min(...lows).toFixed(2)],
+  ];
+
+  document.getElementById('stats').innerHTML = stats.map(([label, value])=>`
+    <div class="stat">
+      <div class="stat-label">${label}</div>
+      <div class="stat-value">${value}</div>
+    </div>`).join('');
+
+  renderChart();
+}
+
+function renderChart(){
+  const data = filteredData();
+  const labels = data.map(d=>d.date);
+  const closes = data.map(d=>d.close);
+
+  const trendUp = closes[closes.length-1] >= closes[0];
+  const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+
+  const ctx = document.getElementById('price-chart').getContext('2d');
+  const gradient = ctx.createLinearGradient(0,0,0,320);
+  gradient.addColorStop(0, 'rgba(63,191,174,0.28)');
+  gradient.addColorStop(1, 'rgba(63,191,174,0)');
+
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: closes,
+        borderColor: lineColor,
+        backgroundColor: gradient,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        pointHoverBackgroundColor: lineColor,
+        fill: true,
+        tension: 0.25,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0A1E22',
+          borderColor: '#1D3B40',
+          borderWidth: 1,
+          titleFont: { family: 'IBM Plex Mono', size: 11 },
+          bodyFont: { family: 'IBM Plex Mono', size: 12 },
+          padding: 10,
+          callbacks: {
+            label: (item)=> 'Rs ' + item.parsed.y.toFixed(2)
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display:false },
+          ticks: { color:'#7E9FA0', font:{ family:'IBM Plex Mono', size:10 }, maxTicksLimit: 6 }
+        },
+        y: {
+          grid: { color:'#1D3B40' },
+          ticks: { color:'#7E9FA0', font:{ family:'IBM Plex Mono', size:10 }, callback:(v)=>'Rs '+v }
+        }
+      }
+    }
+  });
+}
+
+loadData();
+</script>
+</body>
+</html>
