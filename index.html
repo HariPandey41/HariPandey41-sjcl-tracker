@@ -6,7 +6,6 @@
 <title>SJCL — Sanjen Jalvidyut Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
   :root{
     --bg: #0A1E22;
@@ -117,6 +116,7 @@
     margin-bottom:22px;
   }
   #chart-container{height:320px;}
+  #price-chart{display:block;width:100%;height:100%;}
 
   /* Stats grid */
   .stats{
@@ -200,29 +200,51 @@
 </div>
 
 <script>
-const DATA_URL = 'data/sjcl.json';
+const DATA_URL = './data/sjcl.json';
 let allData = [];
 let chart = null;
 let currentRangeDays = 365;
 
+function showDataError(message){
+  document.querySelector('.wrap').innerHTML = `
+    <div class="hero">
+      <p class="eyebrow">NEPSE · Hydropower Sector</p>
+      <h1>SJCL <span>— Sanjen Jalvidyut Company Limited</span></h1>
+    </div>
+    <div class="empty-state">
+      ${message}<br/>
+      Confirm that <code>data/sjcl.json</code> exists in the GitHub Pages root and run
+      <code>Update SJCL price data</code> from the Actions tab.
+    </div>`;
+}
+
 async function loadData(){
   try{
-    const res = await fetch(DATA_URL, { cache: 'no-store' });
-    allData = await res.json();
+    const res = await fetch(`${DATA_URL}?v=${Date.now()}`, { cache: 'no-store' });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const payload = await res.json();
+    if(!Array.isArray(payload)) throw new Error('data/sjcl.json is not a JSON array');
+    allData = payload
+      .filter(row => row && typeof row.date === 'string' && Number.isFinite(Number(row.close)))
+      .map(row => ({
+        ...row,
+        close: Number(row.close),
+        open: row.open == null ? null : Number(row.open),
+        high: row.high == null ? null : Number(row.high),
+        low: row.low == null ? null : Number(row.low),
+        volume: row.volume == null ? null : Number(row.volume),
+      }))
+      .filter(row => Number.isFinite(row.close))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if(allData.length === 0) throw new Error('no valid SJCL rows');
   }catch(e){
     allData = [];
+    showDataError(`Unable to load SJCL data (${e.message}).`);
+    return;
   }
 
   if(!allData || allData.length === 0){
-    document.querySelector('.wrap').innerHTML = `
-      <div class="hero">
-        <p class="eyebrow">NEPSE · Hydropower Sector</p>
-        <h1>SJCL <span>— Sanjen Jalvidyut Company Limited</span></h1>
-      </div>
-      <div class="empty-state">
-        No data yet. Trigger the <code>Update SJCL price data</code> GitHub Action manually once<br/>
-        (Actions tab → workflow_dispatch) to populate <code>data/sjcl.json</code> for the first time.
-      </div>`;
+    showDataError('No SJCL trading data is available yet.');
     return;
   }
 
@@ -282,64 +304,72 @@ function renderAll(){
 
 function renderChart(){
   const data = filteredData();
-  const labels = data.map(d=>d.date);
-  const closes = data.map(d=>d.close);
+  const canvas = document.getElementById('price-chart');
+  if(!canvas || data.length === 0) return;
 
-  const trendUp = closes[closes.length-1] >= closes[0];
-  const lineColor = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(320, Math.round(rect.width || 800));
+  const height = Math.max(220, Math.round(rect.height || 320));
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = width * dpr;
+  canvas.height = height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
 
-  const ctx = document.getElementById('price-chart').getContext('2d');
-  const gradient = ctx.createLinearGradient(0,0,0,320);
-  gradient.addColorStop(0, 'rgba(63,191,174,0.28)');
-  gradient.addColorStop(1, 'rgba(63,191,174,0)');
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  const muted = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim();
+  const border = getComputedStyle(document.documentElement).getPropertyValue('--panel-border').trim();
+  const closes = data.map(row => row.close);
+  const min = Math.min(...closes);
+  const max = Math.max(...closes);
+  const span = Math.max(max - min, 1);
+  const pad = { top: 18, right: 14, bottom: 34, left: 54 };
+  const plotWidth = width - pad.left - pad.right;
+  const plotHeight = height - pad.top - pad.bottom;
+  const x = index => pad.left + (data.length === 1 ? plotWidth / 2 : index * plotWidth / (data.length - 1));
+  const y = value => pad.top + (max - value) * plotHeight / span;
 
-  if(chart) chart.destroy();
-  chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        data: closes,
-        borderColor: lineColor,
-        backgroundColor: gradient,
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        pointHoverBackgroundColor: lineColor,
-        fill: true,
-        tension: 0.25,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: '#0A1E22',
-          borderColor: '#1D3B40',
-          borderWidth: 1,
-          titleFont: { family: 'IBM Plex Mono', size: 11 },
-          bodyFont: { family: 'IBM Plex Mono', size: 12 },
-          padding: 10,
-          callbacks: {
-            label: (item)=> 'Rs ' + item.parsed.y.toFixed(2)
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: { display:false },
-          ticks: { color:'#7E9FA0', font:{ family:'IBM Plex Mono', size:10 }, maxTicksLimit: 6 }
-        },
-        y: {
-          grid: { color:'#1D3B40' },
-          ticks: { color:'#7E9FA0', font:{ family:'IBM Plex Mono', size:10 }, callback:(v)=>'Rs '+v }
-        }
-      }
-    }
-  });
+  ctx.clearRect(0, 0, width, height);
+  ctx.font = "10px 'IBM Plex Mono', monospace";
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = border;
+  ctx.fillStyle = muted;
+  ctx.textAlign = 'right';
+  for(let i = 0; i <= 4; i++){
+    const value = min + span * i / 4;
+    const lineY = y(value);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, lineY);
+    ctx.lineTo(width - pad.right, lineY);
+    ctx.stroke();
+    ctx.fillText(`Rs ${value.toFixed(0)}`, pad.left - 8, lineY + 3);
+  }
+
+  ctx.textAlign = 'center';
+  const tickCount = Math.min(6, data.length);
+  for(let i = 0; i < tickCount; i++){
+    const index = Math.round(i * (data.length - 1) / Math.max(tickCount - 1, 1));
+    ctx.fillText(data[index].date, x(index), height - 10);
+  }
+
+  ctx.beginPath();
+  data.forEach((row, index) => index === 0 ? ctx.moveTo(x(index), y(row.close)) : ctx.lineTo(x(index), y(row.close)));
+  ctx.lineTo(x(data.length - 1), pad.top + plotHeight);
+  ctx.lineTo(x(0), pad.top + plotHeight);
+  ctx.closePath();
+  const fill = ctx.createLinearGradient(0, pad.top, 0, pad.top + plotHeight);
+  fill.addColorStop(0, 'rgba(63,191,174,0.28)');
+  fill.addColorStop(1, 'rgba(63,191,174,0)');
+  ctx.fillStyle = fill;
+  ctx.fill();
+
+  ctx.beginPath();
+  data.forEach((row, index) => index === 0 ? ctx.moveTo(x(index), y(row.close)) : ctx.lineTo(x(index), y(row.close)));
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
 }
 
 loadData();
