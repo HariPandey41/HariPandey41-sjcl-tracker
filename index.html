@@ -132,6 +132,38 @@
   .stat-label{font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:6px;}
   .stat-value{font-family:'IBM Plex Mono', monospace; font-size:17px; font-weight:500;}
 
+  /* Portfolio reconciliation */
+  .portfolio{margin-top:22px;}
+  .section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin:0 0 10px;}
+  .section-head h2{font-family:'Space Grotesk',sans-serif;font-size:19px;margin:0;color:var(--text);}
+  .section-head p{margin:0;color:var(--text-muted);font-size:12px;line-height:1.5;}
+  .portfolio-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--panel-border);border:1px solid var(--panel-border);border-radius:16px;overflow:hidden;margin-bottom:16px;}
+  .portfolio-card{background:var(--panel);padding:16px 18px;min-height:104px;}
+  .portfolio-card .stat-value{font-size:18px;}
+  .portfolio-card small{display:block;color:var(--text-muted);font-size:11px;line-height:1.45;margin-top:7px;}
+  .portfolio-panel{border:1px solid var(--panel-border);border-radius:16px;background:var(--panel);padding:18px;margin-bottom:16px;}
+  .portfolio-panel h3{font-family:'Space Grotesk',sans-serif;font-size:16px;margin:0 0 8px;}
+  .portfolio-panel p{color:var(--text-muted);font-size:12px;line-height:1.55;margin:0 0 12px;}
+  .table-wrap{overflow-x:auto;}
+  .portfolio-table{width:100%;border-collapse:collapse;font-size:12px;min-width:620px;}
+  .portfolio-table th,.portfolio-table td{padding:9px 8px;border-bottom:1px solid var(--panel-border);text-align:right;white-space:nowrap;}
+  .portfolio-table th:first-child,.portfolio-table td:first-child{text-align:left;}
+  .portfolio-table th{color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:500;}
+  .portfolio-table tr:last-child td{border-bottom:0;}
+  .gain{color:var(--gain)!important;}.loss{color:var(--loss)!important;}.muted{color:var(--text-muted)!important;}
+  .inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0 10px;}
+  .input-group label{display:block;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+  .input-group input{width:100%;border:1px solid var(--panel-border);background:#0A1E22;color:var(--text);border-radius:8px;padding:9px 10px;font:500 13px 'IBM Plex Mono',monospace;}
+  .input-note{font-size:11px;color:var(--text-muted);line-height:1.45;margin-top:8px;}
+  .strategy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .strategy{border:1px solid var(--panel-border);border-radius:12px;padding:14px;background:#0D2429;}
+  .strategy h4{font-family:'Space Grotesk',sans-serif;margin:0 0 5px;font-size:14px;}
+  .strategy strong{font-family:'IBM Plex Mono',monospace;font-size:16px;display:block;margin-bottom:6px;}
+  .strategy p{font-size:11px;margin:0;}
+  .status{display:inline-block;border:1px solid rgba(226,114,91,.45);background:rgba(226,114,91,.08);color:#F0B0A2;border-radius:999px;padding:4px 8px;font:500 10px 'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.06em;}
+  .source-note{font-size:11px;color:var(--text-muted);line-height:1.55;margin-top:12px;}
+  .source-note a{color:var(--accent);text-decoration:none;}
+
   .empty-state{
     text-align:center;
     padding:60px 20px;
@@ -159,6 +191,9 @@
   @media (max-width:560px){
     .price{font-size:38px;}
     .stats{grid-template-columns:repeat(2,1fr);}
+    .portfolio-grid{grid-template-columns:repeat(2,1fr);}
+    .strategy-grid{grid-template-columns:1fr;}
+    .inputs{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -194,6 +229,46 @@
 
   <div class="stats" id="stats"></div>
 
+  <section class="portfolio" aria-labelledby="portfolio-title">
+    <div class="section-head">
+      <div>
+        <p class="eyebrow">Personal reconciliation · Asmita mailbox</p>
+        <h2 id="portfolio-title">Buy / sell / remaining position</h2>
+      </div>
+      <span class="status">Partial data — verify WACC</span>
+    </div>
+
+    <div class="portfolio-grid" id="portfolio-summary"></div>
+
+    <div class="portfolio-panel">
+      <h3>Verified transaction ledger</h3>
+      <p>These rows are transcribed from Citizens Share Broker emails in Asmita Bhandari’s mailbox. The 31 July purchase PDF was identified but could not be decoded by the mailbox connector, so it remains pending rather than estimated.</p>
+      <div class="table-wrap">
+        <table class="portfolio-table">
+          <thead><tr><th>Date</th><th>Side</th><th>Qty</th><th>Rate</th><th>Gross amount</th><th>Bill / total</th><th>Status</th></tr></thead>
+          <tbody id="portfolio-ledger"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="portfolio-panel">
+      <h3>Reconcile your live position</h3>
+      <p>Enter the actual WACC and remaining SJCL shares from MeroShare. The fields are stored only in this browser and are not sent anywhere.</p>
+      <div class="inputs">
+        <div class="input-group"><label for="wacc-input">Actual WACC / cost per share (NPR)</label><input id="wacc-input" type="number" step="0.01" min="0" placeholder="e.g. 271.51" /></div>
+        <div class="input-group"><label for="remaining-input">Current remaining shares</label><input id="remaining-input" type="number" step="1" min="0" placeholder="Enter MeroShare balance" /></div>
+      </div>
+      <div class="input-note" id="portfolio-note"></div>
+    </div>
+
+    <div class="portfolio-panel">
+      <h3>Conditional profit plan</h3>
+      <p>Illustrative thresholds use the verified 30 July effective rate as a placeholder WACC and the observed listed sale deduction rate. Replace the WACC above before acting.</p>
+      <div class="strategy-grid" id="strategy-grid"></div>
+      <div class="source-note">Market reference: latest tracker close and moving averages from <a href="https://github.com/HariPandey41/HariPandey41-sjcl-tracker" target="_blank" rel="noreferrer">the SJCL repository</a>. Transaction reference: Citizens Share Broker sales dated 14 Aug and 19 Aug 2026, plus the verified 30 July purchase bill in Asmita’s mailbox.</div>
+    </div>
+  </section>
+
   <footer>
     Data refreshed automatically via GitHub Actions from NEPSE public price history · Not investment advice
   </footer>
@@ -204,6 +279,92 @@ const DATA_URL = './data/sjcl.json';
 let allData = [];
 let chart = null;
 let currentRangeDays = 365;
+
+const portfolioSales = [
+  {date:'2026-08-14', qty:940, rate:270.10, gross:253894.00, bill:253018.07},
+  {date:'2026-08-14', qty:25, rate:270.10, gross:6752.50, bill:6727.18},
+  {date:'2026-08-14', qty:205, rate:270.00, gross:55350.00, bill:55159.04},
+  {date:'2026-08-14', qty:245, rate:271.00, gross:66395.00, bill:66165.94},
+  {date:'2026-08-14', qty:50, rate:271.00, gross:13550.00, bill:13499.19},
+  {date:'2026-08-14', qty:10, rate:271.00, gross:2710.00, bill:2699.59},
+  {date:'2026-08-19', qty:10, rate:263.70, gross:2637.00, bill:2626.60},
+  {date:'2026-08-19', qty:100, rate:263.60, gross:26360.00, bill:26261.15},
+  {date:'2026-08-19', qty:350, rate:263.50, gross:92225.00, bill:91906.83},
+  {date:'2026-08-19', qty:2235, rate:263.50, gross:588922.50, bill:587008.50},
+];
+const portfolioBuys = [
+  {date:'2026-07-30', qty:90, rate:270.50, gross:24345.00, bill:24436.29, status:'verified'},
+  {date:'2026-07-31', qty:null, rate:null, gross:null, bill:null, status:'pending PDF'},
+];
+const verifiedSoldQty = portfolioSales.reduce((sum, row) => sum + row.qty, 0);
+const verifiedGrossSales = portfolioSales.reduce((sum, row) => sum + row.gross, 0);
+const verifiedBillSales = portfolioSales.reduce((sum, row) => sum + row.bill, 0);
+const listedSellDeductionRate = (verifiedGrossSales - verifiedBillSales) / verifiedGrossSales;
+const illustrativeWacc = 271.51;
+const latestBrokerExecution = 263.50;
+
+function npr(value, digits=2){
+  if(value == null || !Number.isFinite(Number(value))) return '—';
+  return 'NPR ' + Number(value).toLocaleString('en-IN', {minimumFractionDigits:digits, maximumFractionDigits:digits});
+}
+function pct(value){
+  if(value == null || !Number.isFinite(Number(value))) return '—';
+  return Number(value).toFixed(2) + '%';
+}
+function getNumber(id){
+  const raw = document.getElementById(id)?.value?.trim();
+  if(!raw) return null;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+function persistPortfolioInputs(){
+  localStorage.setItem('sjcl-wacc', document.getElementById('wacc-input').value);
+  localStorage.setItem('sjcl-remaining', document.getElementById('remaining-input').value);
+  renderPortfolio();
+}
+function renderPortfolio(){
+  const latest = allData[allData.length - 1];
+  const closes = allData.map(row => row.close);
+  const sma10 = closes.length >= 10 ? closes.slice(-10).reduce((a,b)=>a+b,0)/10 : null;
+  const sma20 = closes.length >= 20 ? closes.slice(-20).reduce((a,b)=>a+b,0)/20 : null;
+  const recent20Low = closes.length >= 20 ? Math.min(...closes.slice(-20)) : null;
+  const wacc = getNumber('wacc-input');
+  const remaining = getNumber('remaining-input');
+  const illustrativeCost = (wacc ?? illustrativeWacc) * verifiedSoldQty;
+  const illustrativeGrossPnl = verifiedGrossSales - illustrativeCost;
+  const illustrativeNetPnl = verifiedBillSales - illustrativeCost;
+  const breakEven = (wacc ?? illustrativeWacc) / (1 - listedSellDeductionRate);
+  const currentValue = latest && remaining != null ? latest.close * remaining : null;
+  const remainingCost = remaining != null && wacc != null ? remaining * wacc : null;
+  const remainingPnl = currentValue != null && remainingCost != null ? currentValue - remainingCost : null;
+  const summary = [
+    ['Verified sold', verifiedSoldQty.toLocaleString('en-IN') + ' shares', 'Aug 14 + Aug 19 broker emails'],
+    ['Net sale bills', npr(verifiedBillSales), 'After listed bill deductions'],
+    ['Tracker close', latest ? npr(latest.close) : '—', latest ? 'As of ' + latest.date : 'No price data'],
+    ['Remaining value', currentValue == null ? 'Enter shares' : npr(currentValue), remaining == null ? 'Use MeroShare balance' : remaining.toLocaleString('en-IN') + ' shares at tracker close'],
+  ];
+  document.getElementById('portfolio-summary').innerHTML = summary.map(([label,value,note]) => `<div class="portfolio-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div><small>${note}</small></div>`).join('');
+
+  const buyRows = portfolioBuys.map(row => `<tr><td>${row.date}</td><td>Buy</td><td>${row.qty == null ? '—' : row.qty.toLocaleString('en-IN')}</td><td>${row.rate == null ? '—' : npr(row.rate)}</td><td>${row.gross == null ? '—' : npr(row.gross)}</td><td>${row.bill == null ? '—' : npr(row.bill)}</td><td class="${row.qty == null ? 'loss' : 'gain'}">${row.status}</td></tr>`).join('');
+  const saleRows = portfolioSales.map(row => `<tr><td>${row.date}</td><td>Sell</td><td>${row.qty.toLocaleString('en-IN')}</td><td>${npr(row.rate)}</td><td>${npr(row.gross)}</td><td>${npr(row.bill)}</td><td class="gain">verified</td></tr>`).join('');
+  document.getElementById('portfolio-ledger').innerHTML = buyRows + saleRows + `<tr><td colspan="2"><strong>Verified sales total</strong></td><td><strong>${verifiedSoldQty.toLocaleString('en-IN')}</strong></td><td><strong>${npr(verifiedGrossSales / verifiedSoldQty)}</strong></td><td><strong>${npr(verifiedGrossSales)}</strong></td><td><strong>${npr(verifiedBillSales)}</strong></td><td></td></tr>`;
+
+  const note = document.getElementById('portfolio-note');
+  const pnlClass = illustrativeNetPnl >= 0 ? 'gain' : 'loss';
+  note.innerHTML = `Using ${wacc == null ? 'the illustrative NPR 271.51' : 'your entered NPR ' + wacc.toFixed(2)} cost/share, the ${verifiedSoldQty.toLocaleString('en-IN')} verified sold shares imply <strong class="${pnlClass}">${npr(illustrativeNetPnl)}</strong> after listed sale deductions. This becomes an actual realized P/L only after the complete WACC and all purchases are reconciled. ${remainingPnl == null ? 'Remaining-share P/L is waiting for both live shares and WACC.' : `Remaining-share mark-to-market P/L at the tracker close is <strong class="${remainingPnl >= 0 ? 'gain' : 'loss'}">${npr(remainingPnl)}</strong>.`}`;
+
+  const buyZone = recent20Low != null ? `${npr(Math.max(0, recent20Low - 6))}–${npr(recent20Low)}` : '—';
+  const confirmation = sma10 != null ? npr(sma10) : '—';
+  const profit10 = (wacc ?? illustrativeWacc) + 10000 / verifiedSoldQty;
+  const profit25 = (wacc ?? illustrativeWacc) + 25000 / verifiedSoldQty;
+  const profit50 = (wacc ?? illustrativeWacc) + 50000 / verifiedSoldQty;
+  const strategy = [
+    ['Watch / stage buys', buyZone, 'Only consider small staged entries near the recent 20-day low; do not chase a falling price. Stop adding if the close breaks below that low and reassess.'],
+    ['Confirmation level', confirmation, `A close above the 10-day SMA (${confirmation}) is a confirmation condition, not a guarantee. Add only within your risk budget.`],
+    ['Scale-out / sell plan', `${npr(breakEven)}+`, `Illustrative gross break-even for the verified sold quantity. Profit checkpoints are ${npr(profit10)}, ${npr(profit25)}, and ${npr(profit50)} for NPR 10k, 25k, and 50k total profit before any unlisted costs.`],
+  ];
+  document.getElementById('strategy-grid').innerHTML = strategy.map(([title,value,body]) => `<div class="strategy"><h4>${title}</h4><strong>${value}</strong><p>${body}</p></div>`).join('');
+}
 
 function showDataError(message){
   document.querySelector('.wrap').innerHTML = `
@@ -249,6 +410,13 @@ async function loadData(){
   }
 
   renderAll();
+  const storedWacc = localStorage.getItem('sjcl-wacc');
+  const storedRemaining = localStorage.getItem('sjcl-remaining');
+  if(storedWacc) document.getElementById('wacc-input').value = storedWacc;
+  if(storedRemaining) document.getElementById('remaining-input').value = storedRemaining;
+  document.getElementById('wacc-input').addEventListener('input', persistPortfolioInputs);
+  document.getElementById('remaining-input').addEventListener('input', persistPortfolioInputs);
+  renderPortfolio();
   document.querySelectorAll('.ranges button').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       document.querySelectorAll('.ranges button').forEach(b=>b.classList.remove('active'));
@@ -300,6 +468,7 @@ function renderAll(){
     </div>`).join('');
 
   renderChart();
+  renderPortfolio();
 }
 
 function renderChart(){

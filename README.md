@@ -43,6 +43,12 @@ The current NEPSE server certificate chain may require the updater’s default `
 
 The updater is idempotent: dates are used as keys, duplicate trading days are replaced rather than duplicated, and the existing JSON file is preserved if NEPSE is unavailable or returns no valid records. The optional environment variables `SJCL_BACKFILL_START`, `SJCL_PAGE_SIZE`, and `SJCL_END_DATE` can be used for controlled local tests.
 
+## Portfolio reconciliation
+
+The dashboard includes a personal portfolio-reconciliation section populated from verified Citizens Share Broker emails in Asmita Bhandari’s Gmail account. It currently records 4,170 verified SJCL shares sold across 14 August and 19 August 2026, the verified 30 July purchase bill for 90 shares, and a clearly marked pending row for the 31 July purchase bill whose attachment could not be decoded. The page deliberately does not infer the missing quantity or the current remaining balance.
+
+The page calculates listed net sale bills, an illustrative realized P/L scenario, moving-average reference levels, and conditional buy/scale-out thresholds. Users should replace the illustrative cost/share with the actual WACC and enter the remaining MeroShare balance; these values are kept in browser local storage only. The page labels the output as partial and conditional because complete WACC, all purchases, current holdings, taxes/fees, and execution details are not available in the repository.
+
 ## Disclaimer
 
-The data is public market information for personal tracking. It is not investment advice.
+The data is public market information for personal tracking. Portfolio calculations are based on user-authorized broker emails and are incomplete until the missing 31 July purchase and live MeroShare position are verified. Conditional price levels are analytical scenarios, not guaranteed forecasts or investment advice.
